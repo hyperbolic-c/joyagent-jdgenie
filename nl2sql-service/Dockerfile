@@ -13,7 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制代码
 COPY nl2sql/ ./nl2sql/
-COPY prompts/ ./prompts/
 
 # 创建日志目录
 RUN mkdir -p /app/logs
