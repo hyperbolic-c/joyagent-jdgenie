@@ -11,7 +11,8 @@ import yaml
 from jinja2 import Template
 
 from nl2sql.llm import LLMClient
-from nl2sql.models import LLMConfig, NL2SQLRequest, NL2SQLData
+from nl2sql.models import LLMConfig, NL2SQLRequest
+from nl2sql.rag import ColumnFilterModule
 from nl2sql.utils import get_logger, timer
 
 logger = get_logger("nl2sql.agent")
@@ -290,6 +291,7 @@ class NL2SQLAgent:
         request_id = body.request_id
         query = body.query
         current_date_info = body.current_date_info
+        table_id_list = body.table_id_list
         column_info = body.column_info
         dialect = body.dialect
 
@@ -301,13 +303,23 @@ class NL2SQLAgent:
                 self._text_to_rewrite(request_id=request_id, query=query)
             )
 
-            # 2. 表结构格式化
-            m_schema_formatted = await self._m_schema_format(column_info)
+            # 2. 字段精排
+            rank_module = ColumnFilterModule(
+                request_id=request_id,
+                query=query,
+                current_date_info=current_date_info,
+                table_id_list=table_id_list,
+                column_info=column_info,
+            )
+            rank_task = asyncio.create_task(rank_module.batch_get_result())
 
-            # 等待改写完成
-            rewritten_query = await rewrite_task
+            # 并发等待改写和精排
+            rewritten_query, rank_result = await asyncio.gather(rewrite_task, rank_task)
 
-            # 3. 思考分析（流式输出）
+            # 3. 表结构格式化
+            m_schema_formatted = await self._m_schema_format(rank_result)
+
+            # 4. 思考分析（流式输出）
             full_thinking = await self._collect_think_results(
                 request_id=request_id,
                 query=query,
@@ -315,7 +327,7 @@ class NL2SQLAgent:
                 m_schema_formatted=m_schema_formatted
             )
 
-            # 4. SQL 生成
+            # 5. SQL 生成
             nl2sql_response = await self._nl2sql_convert(
                 request_id=request_id,
                 rewritten_query=rewritten_query,
