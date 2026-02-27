@@ -11,7 +11,7 @@ from nl2sql.api import router
 from nl2sql.utils import setup_logging
 
 # 配置日志
-log_path = os.getenv("LOG_PATH", "/app/logs/nl2sql.log")
+log_path = os.getenv("LOG_PATH", "logs/nl2sql.log")
 log_level = os.getenv("LOG_LEVEL", "INFO")
 setup_logging(log_path=log_path, level=log_level)
 

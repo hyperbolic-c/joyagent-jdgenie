@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # 服务配置
     port: int = Field(default=1601, alias="PORT")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
-    log_path: str = Field(default="/app/logs/nl2sql.log", alias="LOG_PATH")
+    log_path: str = Field(default="logs/nl2sql.log", alias="LOG_PATH")
 
     # LLM 默认配置
     default_llm_model: str = Field(default="gpt-4.1", alias="DEFAULT_LLM_MODEL")
