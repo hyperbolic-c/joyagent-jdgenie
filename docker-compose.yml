@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # Genie Tool 服务
+  genie-tool:
+    build:
+      context: ./genie-tool
+      dockerfile: Dockerfile
+    container_name: genie-tool
+    ports:
+      - "1601:1601"
+    environment:
+      # LLM 配置（必填）
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
+      - NL2SQL_MODEL_NAME=${NL2SQL_MODEL_NAME:-gpt-4.1}
+      - REWRITE_MODEL_NAME=${REWRITE_MODEL_NAME:-gpt-4.1}
+      - THINK_MODEL_NAME=${THINK_MODEL_NAME:-gpt-4.1}
+      
+      # 可选：向量数据库配置
+      - QDRANT_HOST=${QDRANT_HOST:-qdrant}
+      - QDRANT_PORT=${QDRANT_PORT:-6333}
+      
+      # 可选：Elasticsearch 配置
+      - ES_HOST=${ES_HOST:-elasticsearch}
+      - ES_PORT=${ES_PORT:-9200}
+      
+      # 服务配置
+      - ENV=production
+      - LOG_PATH=/app/logs/server.log
+    volumes:
+      # 挂载日志目录
+      - ./logs/genie-tool:/app/logs
+      # 可选：挂载配置文件
+      # - ./genie-tool/config.yaml:/app/config.yaml
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - genie-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1601/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Qdrant 向量数据库（可选）
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-storage:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    networks:
+      - genie-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Elasticsearch（可选）
+  elasticsearch:
+    image: elasticsearch:7.17.12
+    container_name: elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - genie-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 可选：Kibana（Elasticsearch 可视化）
+  kibana:
+    image: kibana:7.17.12
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - genie-network
+    restart: unless-stopped
+    profiles:
+      - with-kibana  # 使用 docker-compose --profile with-kibana up 启动
+
+networks:
+  genie-network:
+    driver: bridge
+
+volumes:
+  qdrant-storage:
+  elasticsearch-data:
