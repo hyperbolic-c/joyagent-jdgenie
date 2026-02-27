@@ -52,6 +52,32 @@ def test_nl2sql_request_with_llm_config():
     assert request.llm_config.model == "gpt-4"
 
 
+def test_nl2sql_request_with_camel_case_llm_config():
+    """测试 llmConfig 的 camelCase 字段兼容"""
+    request = NL2SQLRequest.model_validate(
+        {
+            "requestId": "req-123",
+            "query": "测试查询",
+            "currentDateInfo": "2024-01-01",
+            "modelCodeList": [],
+            "schemaInfo": [],
+            "llmConfig": {
+                "model": "gpt-4.1",
+                "apiKey": "test-key",
+                "baseUrl": "https://api.openai.com/v1",
+                "temperature": 0.2,
+                "topP": 0.8,
+                "maxTokens": 1024,
+            },
+        }
+    )
+    assert request.llm_config is not None
+    assert request.llm_config.api_key == "test-key"
+    assert request.llm_config.base_url == "https://api.openai.com/v1"
+    assert request.llm_config.top_p == 0.8
+    assert request.llm_config.max_tokens == 1024
+
+
 def test_nl2sql_response():
     """测试 NL2SQL 响应模型"""
     data = NL2SQLData(query="问题", nl2sql="SELECT * FROM table")

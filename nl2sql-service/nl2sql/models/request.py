@@ -4,17 +4,19 @@
 # =====================
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LLMConfig(BaseModel):
     """LLM 配置模型 - 支持每次请求独立配置"""
+    model_config = ConfigDict(populate_by_name=True)
+
     model: Optional[str] = Field(default=None, description="模型名称，如 gpt-4.1")
-    api_key: Optional[str] = Field(default=None, description="API 密钥")
-    base_url: Optional[str] = Field(default=None, description="API 基础 URL")
+    api_key: Optional[str] = Field(default=None, alias="apiKey", description="API 密钥")
+    base_url: Optional[str] = Field(default=None, alias="baseUrl", description="API 基础 URL")
     temperature: float = Field(default=0.0, ge=0.0, le=2.0)
-    top_p: float = Field(default=0.0, ge=0.0, le=1.0)
-    max_tokens: Optional[int] = Field(default=None)
+    top_p: float = Field(default=0.0, alias="topP", ge=0.0, le=1.0)
+    max_tokens: Optional[int] = Field(default=None, alias="maxTokens")
 
 
 class NL2SQLRequest(BaseModel):
