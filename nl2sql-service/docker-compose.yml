@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  nl2sql-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nl2sql-service
+    ports:
+      - "1601:1601"
+    environment:
+      # 默认 LLM 配置（可被请求覆盖）
+      - NL2SQL_MODEL_NAME=${NL2SQL_MODEL_NAME:-gpt-4.1}
+      - REWRITE_MODEL_NAME=${REWRITE_MODEL_NAME:-gpt-4.1}
+      - THINK_MODEL_NAME=${THINK_MODEL_NAME:-gpt-4.1}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
+      # 服务配置
+      - PORT=1601
+      - LOG_LEVEL=INFO
+      - LOG_PATH=/app/logs/nl2sql.log
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - nl2sql-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1601/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  nl2sql-network:
+    driver: bridge
