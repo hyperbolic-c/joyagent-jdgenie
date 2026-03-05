@@ -33,6 +33,9 @@ class LLMClient:
             "nl2sql": "NL2SQL_MODEL_NAME",
             "rewrite": "REWRITE_MODEL_NAME",
             "think": "THINK_MODEL_NAME",
+            # 保持与原版字段精排模块的环境变量命名兼容
+            "column_filter": "TR_TABLE_FILTER_MODEL_NAME",
+            "table_filter": "TR_COLUMN_FILTER_MODEL_NAME",
         }
 
         default_model = "gpt-4.1"
@@ -64,6 +67,9 @@ class LLMClient:
         model_type: str = "nl2sql",
         stream: bool = False,
         only_content: bool = True,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
         extra_headers: Optional[Dict[str, str]] = None,
     ) -> AsyncGenerator[Union[str, Any], None]:
         """
@@ -80,6 +86,12 @@ class LLMClient:
             流式模式下返回 chunk，非流式模式下返回完整内容
         """
         config = self._get_config(model_type)
+        if model:
+            config["model"] = model
+        if temperature is not None:
+            config["temperature"] = temperature
+        if top_p is not None:
+            config["top_p"] = top_p
 
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]

@@ -310,6 +310,7 @@ class NL2SQLAgent:
                 current_date_info=current_date_info,
                 table_id_list=table_id_list,
                 column_info=column_info,
+                llm_config=self.llm_config,
             )
             rank_task = asyncio.create_task(rank_module.batch_get_result())
 
@@ -346,7 +347,9 @@ class NL2SQLAgent:
                 "data": [],
                 "request_id": request_id,
                 "err_msg": str(e),
-                "status": "error"
+                # Keep compatibility with existing backend SSE parser
+                # (it only captures final payload when status == "data")
+                "status": "data"
             }
             await self.queue.put(json.dumps(err_response, ensure_ascii=False))
             logger.error(f"[NL2SQL] request_id={request_id} error: {e}")
