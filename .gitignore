@@ -43,6 +43,7 @@ logs/
 
 # Trae
 .trae/
+.worktrees/
 
 # OS
 .DS_Store
